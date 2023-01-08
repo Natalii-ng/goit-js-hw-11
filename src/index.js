@@ -4,79 +4,119 @@ import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
 
-import axios from 'axios';
+import PicturesAPI from './picture';
 
-
-const API_KEY = '32602005-90d975b9811b1acb6e8234db3';
-
-const inputField = document.querySelector('input');
-const inputButton = document.querySelector('button');
+const form = document.querySelector('.search-form');
+const input = document.querySelector('input');
 const galleryImage = document.querySelector('.gallery');
+const loadBtn = document.querySelector('.load-more');
 
-inputButton.addEventListener('click', e => {
+const picturesAPI = new PicturesAPI();
+
+form.addEventListener('submit', onFormSubmit);
+loadBtn.addEventListener('click', loadMorePhoto);
+
+
+let totalCount = 0;
+
+function onFormSubmit(e) {
   e.preventDefault();
-  getCards({
-    value: inputField.value,
-  });
-});
+  totalCount = 0;
 
-function getCards({ value }) {
-  const urlAPI = `https://pixabay.com/api/?key=${API_KEY}&q=${value}&image_type=photo&orientation=horizontal&safesearch=true`;
-  if (value.length !== 0) {
-    return axios
-      .get(urlAPI)
-      .then(res => res.data)
-      .then(({ hits }) => {
-        render(hits);
-      })
-
-      .catch(function (error) {
-       
-      });
-  }
-}
-
-function render(hits) {
   galleryImage.innerHTML = '';
-  if (hits.length === 0)
-   
+  picturesAPI.query = input.value.trim();
+  picturesAPI.resetPage();
+  picturesAPI.hideLoadMoreBtn();
+
+  if (picturesAPI.query === '') {
     Notiflix.Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
     );
 
-  const hitsElements = hits.map(
-    ({
-      webformatURL,
-      largeImageURL,
-      tags,
-      likes,
-      views,
-      comments,
-      downloads,
-    }) => {
-      return `
-<div class="photo-card">
-<a class="gallery__item" href="${largeImageURL}">
-  <img class="gallery__image" src="${webformatURL}" alt="${tags}" loading="lazy" /></a>
-  <div class="info">
-    <div class="info-item">
-      <p><b>Likes: </b></p> <p>${likes}</p>
-    </div>
-    <div class="info-item">
-      <p><b>Views: </b></p> <p>${views}</p>
-    </div>
-    <div class="info-item">
-      <p><b>Comments: </b></p> <p>${comments}</p>
-    </div>
-    <div class="info-item">
-      <p><b>Downloads: </b></p> <p>${downloads}</p>
-    </div>
-  </div>
-</div>`;
-    }
-  );
+    return;
+  }
 
-  galleryImage.insertAdjacentHTML('beforeend', hitsElements.join(''));
+  fetchPhotosAndCreatePage();
+}
+
+function loadMorePhoto() {
+  picturesAPI.query = input.value.trim();
+  picturesAPI.incrementPage();
+
+  fetchPhotosAndCreatePage();
+}
+
+function createPhotoList(photos) {
+  const photosArray = photos.hits;
+  const totalHits = photos.totalHits;
+
+  totalCount += photosArray.length;
+
+  if (photosArray.length === 0) {
+    Notiflix.Notify.failure(
+      'Sorry, there are no images matching your search query. Please try again.'
+    );
+  }
+
+  if (totalHits !== 0 && totalCount >= totalHits) {
+    Notiflix.Notify.warning(
+      "We're sorry, but you've reached the end of search results."
+    );
+  }
+
+  if (totalHits !== 0) {
+    Notiflix.Notify.success(`We found ${photosArray.length} images.`);
+  }
+
+  if (totalCount < totalHits) {
+    picturesAPI.showLoadMoreBtn();
+  } else {
+    picturesAPI.hideLoadMoreBtn();
+  }
+
+  createPhotosList(photosArray);
+}
+
+
+async function fetchPhotosAndCreatePage() {
+  try {
+    const photoList = await picturesAPI.fetchImages();
+    createPhotoList(photoList);
+  } catch (error) {
+    console.log(error);
+  }
+  gallery.refresh();
+}
+
+function createPhotosList(photosArray) {
+  const markupPhotoList = photosArray
+    .map(photo => {
+      return `
+          <div class="photo-card">
+          <a class="gallery__item" href="${photo.largeImageURL}">
+           <img class="gallery__image" src="${photo.webformatURL}" alt="${photo.tags}" loading="lazy"/>
+          </a>
+            <div class="info">
+               <div class="info-item">
+                 <p><b>Likes: </b></p> <p>${photo.likes}</p>
+              </div>
+              <div class="info-item">
+                <p><b>Views: </b></p> <p>${photo.views}</p>
+              </div>
+              <div class="info-item">
+                <p><b>Comments: </b></p> <p>${photo.comments}</p>
+              </div>
+              <div class="info-item">
+                <p><b>Downloads: </b></p> <p>${photo.downloads}</p>
+              </div>
+           </div>
+          </div>
+          `;
+    })
+    .join('');
+
+  galleryImage.insertAdjacentHTML('beforeend', markupPhotoList);
   let gallery = new SimpleLightbox('.gallery a');
   gallery.on('show.simplelightbox');
-}
+
+};
