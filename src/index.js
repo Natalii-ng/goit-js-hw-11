@@ -76,7 +76,5 @@ function render(hits) {
     }
   );
 
-  galleryImage.insertAdjacentHTML('beforeend', hitsElements.join(''));
-  let gallery = new SimpleLightbox('.gallery a');
-  gallery.on('show.simplelightbox');
+  
 }
