@@ -1,0 +1,8 @@
+.load-more {
+    display: none;
+    
+}
+
+.is-active {
+    display: flex;
+}

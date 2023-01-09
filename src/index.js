@@ -3,7 +3,7 @@ import debounce from 'lodash.debounce';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
-
+import './style.css';
 import PicturesAPI from './picture';
 
 const form = document.querySelector('.search-form');
